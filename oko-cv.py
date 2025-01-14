@@ -2,29 +2,69 @@ import cv2
 import cvzone
 from ultralytics import YOLO
 import math
+import threading
+import ollama
+from gtts import gTTS
+import os
+import queue
 
 #model = YOLO("yolo11n.pt")
 
 model = YOLO("./runs/detect/train2/weights/last.pt")
 print(f"Available model names: {model.names}")
+q = queue.Queue(maxsize=6)
 
-def show_box(box):
-    x1, y1, x2, y2 = box.xyxy[0]
-    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-    w, h = x2 - x1, y2 - y1
-    confidentiality = math.ceil((box.conf[0] * 100)) / 10
-    name = model.names[int(box.cls[0])]
-    cvzone.cornerRect(frame, (x1, y1, w, h))
-    cvzone.putTextRect(frame, f"{name} {confidentiality}", (max(0, x1), max(35, y1)), scale = 1.0)
+def reader():
+    while True:
+        filename = q.get()
+        print(f"Working on {filename}")
+        os.system(f"afplay {filename}")
+        q.task_done()
+
+threading.Thread(target=reader, daemon=True).start()
+
+
+def text_to_speech(text, roi_id):
+    res = gTTS(text=text, lang='en')
+    filename = f"./speech/{roi_id}_output.mp3"
+    res.save(filename)
+    q.put(filename)
+
+def get_details(image_file, class_name, roi_id):
+    print("processing " + image_file + " of class " + class_name)
+
+    res = ollama.chat(
+	    model="llava:7b",
+	    messages=[
+		    {
+			    'role': 'user',
+			    'content': 'Describe a ' + class_name + " recognized inside the rectangle. Make it very short and concise. Very important: Do not mention any rectangle nor image - it's only technical. Instead use words like \"I can see...\".",
+			    'images': [image_file],
+		    }
+	    ]
+    )
+    print(image_file + " of class " + class_name + ": " + res['message']['content'])
+    text_to_speech(res['message']['content'], roi_id) #TODO: one thread with queue
 
 if __name__ == "__main__":
+    recognized_objects = {}
     cap = cv2.VideoCapture(0)
 
     while True:
         ret, frame = cap.read()
-        results = model(frame, stream=True, verbose=False)
-        for r in results:
-            for box in r.boxes:
-                show_box(box)
+        results = model.track(frame, persist=True, verbose=False)
+        frame = results[0].plot()
+        for box in results[0].boxes:
+            if box.id == None:
+                continue
+            id = box.id.item()
+            name = model.names[int(box.cls[0])]
+            if id not in recognized_objects:
+                recognized_objects[id] = "./images/roi" + str(id) + ".jpg"
+                cv2.imwrite(recognized_objects[id], frame)
+                t = threading.Thread(target=get_details, args=(recognized_objects[id], name, id))
+                t.start()
         cv2.imshow('frame', frame)
         cv2.waitKey(1)
+
+q.join()
