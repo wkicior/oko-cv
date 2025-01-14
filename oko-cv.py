@@ -3,7 +3,9 @@ import cvzone
 from ultralytics import YOLO
 import math
 
-model = YOLO("yolo11n.pt")
+#model = YOLO("yolo11n.pt")
+
+model = YOLO("./runs/detect/train2/weights/last.pt")
 print(f"Available model names: {model.names}")
 
 def show_box(box):
