@@ -8,11 +8,10 @@ from gtts import gTTS
 import os
 import queue
 
-#model = YOLO("yolo11n.pt")
-
 model = YOLO("./runs/detect/train2/weights/last.pt")
 print(f"Available model names: {model.names}")
 q = queue.Queue(maxsize=6)
+threads = {}
 
 def reader():
     while True:
@@ -44,7 +43,8 @@ def get_details(image_file, class_name, roi_id):
 	    ]
     )
     print(image_file + " of class " + class_name + ": " + res['message']['content'])
-    text_to_speech(res['message']['content'], roi_id) #TODO: one thread with queue
+    text_to_speech(res['message']['content'], roi_id)
+    threads.pop(roi_id)
 
 if __name__ == "__main__":
     recognized_objects = {}
@@ -64,7 +64,11 @@ if __name__ == "__main__":
                 cv2.imwrite(recognized_objects[id], frame)
                 t = threading.Thread(target=get_details, args=(recognized_objects[id], name, id))
                 t.start()
+                threads[id] = t
         cv2.imshow('frame', frame)
-        cv2.waitKey(1)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break        
 
-q.join()
+for thread in threads.values():
+    thread.join(0)
+

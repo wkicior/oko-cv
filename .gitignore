@@ -172,4 +172,10 @@ cython_debug/
 
 # custom environment
 oko-cv-virtual-env
+oko-cv-virtual-env-new
+images/
+runs/
+speech/
 *.pt
+
+.DS_Store
