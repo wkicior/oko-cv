@@ -20,6 +20,7 @@ The goal of this project is to enhance the independence and quality of life for 
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics) with YOLO11 model
 - [llava model](https://ollama.com/library/llava)
 - [Alaina_CNN dataset](https://universe.roboflow.com/alaina/alaina_cnn)
+- afplay (MacOS)
 
 ### Setup & Requirements
 - Install Python 3.12.x
@@ -30,6 +31,7 @@ The goal of this project is to enhance the independence and quality of life for 
 - Install ollama server
 - Pull the LLAVA model by running `ollama run llava:7b`
 - Download [Alaina_CNN dataset for YOLO11 model](https://universe.roboflow.com/alaina/alaina_cnn/dataset/3/download/yolov11) and place it in your datasets directory (defined in `~/Library/Application\ Support/Ultralytics/settings.json`)
+- Replace afplay with different audio playing software in `oko-cv.py` file
 
 
 ### Running
